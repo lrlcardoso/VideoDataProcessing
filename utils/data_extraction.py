@@ -52,7 +52,7 @@ def extract_movement_data(video_source, output_pickle):
     print()
 
     # Load the YOLO model for pose estimation (extra large model)
-    model_path = r"C:\Users\s4659771\Documents\MyTurn_Project\Video_Data_Processing\pose_models\yolo11x-pose.pt"
+    model_path = r"C:\Users\s4659771\Documents\MyTurn_Project\Video_Data_Processing2\pose_models\yolo11x-pose.pt"
     model = YOLO(model_path)
 
     # Start a timer to measure execution time
