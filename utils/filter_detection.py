@@ -37,6 +37,7 @@ from torchvision import transforms
 from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 from utils.logfile_utils import update_logfile
+from scipy.signal import filtfilt, butter
 
 # === Constants ===
 LEFT_SHOULDER = 5
@@ -46,7 +47,7 @@ SHOULDER_WIDTH_SCALE = 0.8
 VERTICAL_SCALE_FACTOR = 1.3
 MIN_BOX_WIDTH = 100
 MAX_BOX_WIDTH = 280
-THRESHOLD_CAMERA_MOV = 20
+THRESHOLD_CAMERA_MOV = 2
 
 # === Device setup ===
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -65,7 +66,14 @@ def get_embedding(image, model, transform):
     return emb.cpu().numpy()
 
 def load_model():
-    model = torchreid.models.build_model('resnet50', num_classes=1000, pretrained=True)
+    # model = torchreid.models.build_model('resnet50', num_classes=1000, pretrained=True)
+
+    model = torchreid.models.build_model(
+        name='pcb_p6', #'osnet_ain_x1_0',
+        num_classes=1,         # use 1 for inference, or set accordingly when fine-tuning
+        loss='softmax_triplet',        # or 'softmax_triplet' if training
+        pretrained=True
+    )
     model.eval()
     model.to(device)
     return model
@@ -78,13 +86,16 @@ def compute_shoulder_midpoint(left, right):
     return ((left + right) / 2).tolist()
 
 # === Camera Movement Detection ===
-def detect_camera_movements(video_path, start_sec, end_sec, threshold):
+def detect_camera_movements(video_path, start_sec, end_sec, threshold,
+                            smooth_window=15, min_movement_duration=10, min_static_duration=120):
     transform_magnitudes = []
     orb = cv2.ORB_create()
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
     end_sec = min(end_sec, total_frames / fps)
     start_frame = int(start_sec * fps)
     end_frame = int(end_sec * fps)
@@ -97,7 +108,6 @@ def detect_camera_movements(video_path, start_sec, end_sec, threshold):
     kp1, des1 = orb.detectAndCompute(prev_gray, None)
 
     frame_number = start_frame + 1
-    camera_movement_flags = [False] * total_frames
 
     for _ in tqdm(range(start_frame + 1, end_frame), desc="Detecting camera movement"):
         ret, frame = cap.read()
@@ -106,7 +116,7 @@ def detect_camera_movements(video_path, start_sec, end_sec, threshold):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         kp2, des2 = orb.detectAndCompute(gray, None)
 
-        transform_magnitude = 0  # Default value
+        transform_magnitude = 0
         if des1 is not None and des2 is not None:
             matches = bf.match(des1, des2)
             matches = sorted(matches, key=lambda x: x.distance)
@@ -117,15 +127,48 @@ def detect_camera_movements(video_path, start_sec, end_sec, threshold):
                 if M is not None:
                     dx, dy = M[0, 2], M[1, 2]
                     transform_magnitude = np.sqrt(dx**2 + dy**2)
-                    if transform_magnitude > threshold and frame_number < len(camera_movement_flags):
-                        camera_movement_flags[frame_number] = True
 
         transform_magnitudes.append(transform_magnitude)
         kp1, des1 = kp2, des2
         frame_number += 1
 
     cap.release()
-    camera_movement_flags = [flag is True for flag in camera_movement_flags]
+
+    # === Smooth the transform magnitudes ===
+    if len(transform_magnitudes) >= smooth_window:
+        b, a = butter(N=2, Wn=1/smooth_window, btype='low')
+        smoothed = filtfilt(b, a, transform_magnitudes)
+    else:
+        smoothed = transform_magnitudes.copy()  # not enough frames to smooth
+
+    # === Threshold and create initial movement flags ===
+    flags = (np.array(smoothed) > threshold).astype(int)
+
+    # === Post-process to remove short spikes ===
+    def remove_short_segments(arr, min_len, target_val):
+        arr = arr.copy()
+        in_segment = False
+        start_idx = 0
+        for i, val in enumerate(arr):
+            if val == target_val and not in_segment:
+                in_segment = True
+                start_idx = i
+            elif val != target_val and in_segment:
+                if i - start_idx < min_len:
+                    arr[start_idx:i] = 1 - target_val
+                in_segment = False
+        if in_segment and len(arr) - start_idx < min_len:
+            arr[start_idx:] = 1 - target_val
+        return arr
+
+    flags = remove_short_segments(flags, min_movement_duration, target_val=1)
+    flags = remove_short_segments(flags, min_static_duration, target_val=0)
+
+    # Pad flags to match full video length (if needed)
+    camera_movement_flags = [False] * total_frames
+    for i, val in enumerate(flags):
+        camera_movement_flags[start_frame + 1 + i] = bool(val)
+
     return camera_movement_flags, transform_magnitudes
 
 # === Embedding Computation for Target Person ===

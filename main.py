@@ -120,17 +120,18 @@ def filter_video(video_path):
 
     dir = os.path.dirname(video_path)
     pickle_file = os.path.join(dir, f"{base_name}_kinematic_data.pkl")
+    output_pickle_file = os.path.join(dir, f"{base_name}_kinematic_data_filtered.pkl")
     output_video = os.path.join(dir, f"{base_name}_annotated_filtered.mp4")
 
     run_filter_detection(
-        video_path, pickle_file, pickle_file,
+        video_path, pickle_file, output_pickle_file,
         start_video_time=FILTER_CONFIG["start_video_time"],
         end_video_time=FILTER_CONFIG["end_video_time"],
         embedding_info=FILTER_CONFIG["embedding_info"]
     )
 
     generate_video(
-        pickle_file, 
+        output_pickle_file, 
         video_path, 
         output_video,
         show_only_targets=True, 

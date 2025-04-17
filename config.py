@@ -40,7 +40,7 @@ SELECTED_CAMERAS = ["Camera1"]
 FILTER_CONFIG = {
     "start_video_time": 23*60, #0
     "end_video_time": 23*60 + 15, #15
-    "embedding_info": [[20, 40, 2]]
+    "embedding_info": [[20, 40, 2]] #[[31*60 + 10, 32*60 + 10, 152]] #
 }
 
 # # Example 3
