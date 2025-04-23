@@ -29,7 +29,7 @@ from scipy.signal import filtfilt, butter
 import numpy as np
 
 
-def detect_movement_segments(pkl_path, threshold=2, smooth_window=15,
+def detect_movement_segments(pkl_path, threshold=10, smooth_window=15,
                               min_movement_duration=10, min_static_duration=120, fps=30):
     # Load transform magnitudes
     with open(pkl_path, "rb") as f:
@@ -101,7 +101,7 @@ def detect_movement_segments(pkl_path, threshold=2, smooth_window=15,
     return movement_flags
 
 # Example usage:
-pkl_file_path = r"C:\Users\s4659771\Documents\MyTurn_Project\Data\Processed\P02\Session3_20250219\Video\VR\Camera1\2025-02-19 11-09-22_kinematic_data_filtered.pkl"
+pkl_file_path = r"C:\Users\s4659771\Documents\MyTurn_Project\Data\Processed\P01\Session2_20250210\Video\VR\Camera1\2025-02-10 10-25-27_kinematic_data_filtered.pkl"
 
 mod_time = os.path.getmtime(pkl_file_path)
 formatted_time = datetime.fromtimestamp(mod_time).strftime("%Y-%m-%d %H:%M:%S")

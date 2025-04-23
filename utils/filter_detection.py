@@ -38,6 +38,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 from utils.logfile_utils import update_logfile
 from scipy.signal import filtfilt, butter
+import matplotlib.pyplot as plt
 
 # === Constants ===
 LEFT_SHOULDER = 5
@@ -47,7 +48,7 @@ SHOULDER_WIDTH_SCALE = 0.8
 VERTICAL_SCALE_FACTOR = 1.3
 MIN_BOX_WIDTH = 100
 MAX_BOX_WIDTH = 280
-THRESHOLD_CAMERA_MOV = 2
+THRESHOLD_CAMERA_MOV = 10
 
 # === Device setup ===
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -168,6 +169,23 @@ def detect_camera_movements(video_path, start_sec, end_sec, threshold,
     camera_movement_flags = [False] * total_frames
     for i, val in enumerate(flags):
         camera_movement_flags[start_frame + 1 + i] = bool(val)
+
+    # === Save movement plot ===
+    base_name = os.path.splitext(os.path.basename(video_path))[0]
+    plot_output_path = os.path.join(os.path.dirname(video_path), f"{base_name}_camera_movement_plot.png")
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(transform_magnitudes, label="Original", color='lightgray')
+    plt.plot(smoothed, label="Smoothed", color='blue')
+    plt.plot(flags * max(smoothed), label="Movement Flag", color='red', alpha=0.5)
+    plt.xlabel("Frame Index")
+    plt.ylabel("Transform Magnitude")
+    plt.title("Detected Camera Movement Segments")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(plot_output_path)
+    plt.close()
 
     return camera_movement_flags, transform_magnitudes
 

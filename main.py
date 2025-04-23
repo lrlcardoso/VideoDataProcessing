@@ -38,6 +38,7 @@ from utils.data_extraction import extract_movement_data
 from utils.visualization import generate_video
 from utils.logfile_utils import update_logfile
 from utils.filter_detection import run_filter_detection
+from utils.embedding_info import parse_embedding_info
 from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS, FILTER_CONFIG
 
 
@@ -123,11 +124,14 @@ def filter_video(video_path):
     output_pickle_file = os.path.join(dir, f"{base_name}_kinematic_data_filtered.pkl")
     output_video = os.path.join(dir, f"{base_name}_annotated_filtered.mp4")
 
+    segmentation_file = os.path.join(dir, f"{base_name}_segmentation.txt")
+    embedding_info = parse_embedding_info(segmentation_file)
+
     run_filter_detection(
         video_path, pickle_file, output_pickle_file,
         start_video_time=FILTER_CONFIG["start_video_time"],
         end_video_time=FILTER_CONFIG["end_video_time"],
-        embedding_info=FILTER_CONFIG["embedding_info"]
+        embedding_info=embedding_info
     )
 
     generate_video(
