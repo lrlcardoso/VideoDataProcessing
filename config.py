@@ -21,7 +21,7 @@ ROOT_DIR = r"C:\Users\s4659771\Documents\MyTurn_Project\Data"
 SELECTED_PATIENTS = ["P01"]
 SELECTED_SESSIONS = ["Session2"]
 TARGET_SUBFOLDERS = ["FMA_and_VR", "VR", "CT"]
-SELECTED_CAMERAS = ["Camera2"]
+SELECTED_CAMERAS = ["Camera1"]
 
 
 # # Example 1

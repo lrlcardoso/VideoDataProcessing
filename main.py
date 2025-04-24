@@ -64,6 +64,34 @@ def parse_video_info(video_path):
     base_name = os.path.splitext(video_name)[0]
     return patient, session, camera, video_name, base_name
 
+def format_time_for_log(timestr):
+    """
+    Converts float seconds or 'HH:MM:SS.mmm' string to 'hh:mm:ss.mmm'
+    Always returns 2-digit hours, 2-digit minutes, 2-digit seconds, 3-digit ms.
+    """
+    if isinstance(timestr, (float, int)):
+        h = int(timestr // 3600)
+        m = int((timestr % 3600) // 60)
+        s = int(timestr % 60)
+        ms = int(round((timestr - int(timestr)) * 1000))
+        return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
+    elif isinstance(timestr, str):
+        # Try to parse if possible
+        import re
+        match = re.match(r'(\d{1,2}):(\d{2}):(\d{2})(?:[.,](\d{1,6}))?', timestr)
+        if match:
+            h, m, s, ms = match.groups()
+            h, m, s = int(h), int(m), int(s)
+            ms = ms or "0"
+            # Pad/truncate ms to 3 digits
+            ms = ms.ljust(3, '0')[:3]
+            return f"{h:02d}:{m:02d}:{s:02d}.{ms}"
+        else:
+            # Return as-is if not matched (fallback)
+            return timestr
+    else:
+        return str(timestr)
+
 
 def process_video(video_path):
     """
@@ -199,6 +227,20 @@ def filter_video(video_path):
 
         print(f"\n📂 Segment: {folder_name}")
         print("-"*100)
+
+        print()
+
+        update_logfile(
+            logfile=os.path.join(dir_segment, f"{base_name}_logfile.txt"),
+            routine_name="main.py",
+            patient_number=patient,
+            session_number=session,
+            camera_number=camera,
+            original_video_name=video_name,
+            segment=folder_name,
+            start_time=format_time_for_log(seg_start),
+            end_time=format_time_for_log(seg_end),
+        )
 
         # Call filtering for the segment
         run_filter_detection(

@@ -6,8 +6,8 @@ Description:    Logs or updates structured entries containing video processing
                 inference and Re-ID configuration details.
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
-Date:           2025-03-25
-Version:        1.1
+Date:           2025-04-24
+Version:        1.2
 ==============================================================================
 Usage:
     Called as a utility function from other scripts (not run directly).
@@ -21,24 +21,52 @@ Changelog:
     - v1.1: [2025-04-15] Added support for Re-ID parameters (HISTORY_WINDOW, 
             SHOULDER_WIDTH_SCALE, VERTICAL_SCALE_FACTOR, MIN_BOX_WIDTH, 
             MAX_BOX_WIDTH, THRESHOLD_CAMERA_MOV)
+    - v1.2: [2025-04-24] Added support for segment information, start/end time, 
+            and smoothing parameters (SMOOTH_WINDOW, MIN_MOVEMENT_DURATION, 
+            MIN_STATIC_DURATION)
 ==============================================================================
 """
 
-import time
 import os
 import socket
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-def update_logfile(logfile, routine_name, patient_number=None, session_number=None, camera_number=None, 
-                   original_video_name=None, fps=None, resolution=None, yolo_model_name=None,
-                   device=None, classes=None, batch_size=None, stream_flag=None, precision_flag=None, 
-                   iou=None, max_detections=None, time_to_process=None,
-                   history_window=None, shoulder_width_scale=None, vertical_scale_factor=None, 
-                   min_box_width=None, max_box_width=None, threshold_camera_mov=None):
+def update_logfile(
+    logfile,
+    routine_name,
+    patient_number=None,
+    session_number=None,
+    camera_number=None,
+    original_video_name=None,
+    fps=None,
+    resolution=None,
+    yolo_model_name=None,
+    device=None,
+    classes=None,
+    batch_size=None,
+    stream_flag=None,
+    precision_flag=None,
+    iou=None,
+    max_detections=None,
+    time_to_process=None,
+    history_window=None,
+    shoulder_width_scale=None,
+    vertical_scale_factor=None,
+    min_box_width=None,
+    max_box_width=None,
+    threshold_camera_mov=None,
+    # New fields for 1.2
+    segment=None,
+    start_time=None,
+    end_time=None,
+    smooth_window=None,
+    min_movement_duration=None,
+    min_static_duration=None,
+):
     """
-    Updates or creates a structured log entry for a session.
-    
-    If an entry exists, only updates the missing fields while keeping others unchanged.
-    If no entry exists, creates a new structured entry with placeholders.
+    Appends a structured log entry for a processing routine, capturing session,
+    video, and parameter information for reproducibility and tracking.
     """
 
     pc_name = socket.gethostname()
@@ -62,7 +90,7 @@ LOG ENTRIES:
 """)
 
     # Get the current timestamp
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    timestamp = datetime.now(ZoneInfo("Australia/Brisbane")).strftime("%Y-%m-%d %H:%M:%S")
 
     # Prepare log entry
     log_entry = f"\n{timestamp} - [{routine_name}]:\n"
@@ -76,6 +104,12 @@ LOG ENTRIES:
         log_entry += f"  - Camera Number: {camera_number}\n"
     if original_video_name is not None:
         log_entry += f"  - Original Video Name: {original_video_name}\n"
+    if segment is not None:
+        log_entry += f"  - Segment: {segment}\n"
+    if start_time is not None:
+        log_entry += f"  - Start Time: {start_time}\n"
+    if end_time is not None:
+        log_entry += f"  - End Time: {end_time}\n"
     if fps is not None:
         log_entry += f"  - FPS Used: {fps}\n"
     if resolution is not None:
@@ -114,6 +148,12 @@ LOG ENTRIES:
         log_entry += f"  - MAX_BOX_WIDTH: {max_box_width}\n"
     if threshold_camera_mov is not None:
         log_entry += f"  - THRESHOLD_CAMERA_MOV: {threshold_camera_mov}\n"
+    if smooth_window is not None:
+        log_entry += f"  - SMOOTH_WINDOW: {smooth_window}\n"
+    if min_movement_duration is not None:
+        log_entry += f"  - MIN_MOVEMENT_DURATION: {min_movement_duration}\n"
+    if min_static_duration is not None:
+        log_entry += f"  - MIN_STATIC_DURATION: {min_static_duration}\n"
     
     # Append new log entry to file
     with open(logfile, 'a') as file:

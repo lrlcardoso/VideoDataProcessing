@@ -53,6 +53,9 @@ VERTICAL_SCALE_FACTOR = 1.3
 MIN_BOX_WIDTH = 100
 MAX_BOX_WIDTH = 280
 THRESHOLD_CAMERA_MOV = 10
+SMOOTH_WINDOW = 15
+MIN_MOVEMENT_DURATION = 10
+MIN_STATIC_DURATION = 120
 
 # === Device setup ===
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -130,8 +133,7 @@ def compute_shoulder_midpoint(left, right):
     return ((left + right) / 2).tolist()
 
 # === Camera Movement Detection ===
-def detect_camera_movements(video_path, output_pkl, start_sec, end_sec, threshold,
-                            smooth_window=15, min_movement_duration=10, min_static_duration=120):
+def detect_camera_movements(video_path, output_pkl, start_sec, end_sec):
     transform_magnitudes = []
     orb = cv2.ORB_create()
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
@@ -179,14 +181,14 @@ def detect_camera_movements(video_path, output_pkl, start_sec, end_sec, threshol
     cap.release()
 
     # === Smooth the transform magnitudes ===
-    if len(transform_magnitudes) >= smooth_window:
-        b, a = butter(N=2, Wn=1/smooth_window, btype='low')
+    if len(transform_magnitudes) >= SMOOTH_WINDOW:
+        b, a = butter(N=2, Wn=1/SMOOTH_WINDOW, btype='low')
         smoothed = filtfilt(b, a, transform_magnitudes)
     else:
         smoothed = transform_magnitudes.copy()  # not enough frames to smooth
 
     # === Threshold and create initial movement flags ===
-    flags = (np.array(smoothed) > threshold).astype(int)
+    flags = (np.array(smoothed) > THRESHOLD_CAMERA_MOV).astype(int)
 
     # === Post-process to remove short spikes ===
     def remove_short_segments(arr, min_len, target_val):
@@ -205,8 +207,8 @@ def detect_camera_movements(video_path, output_pkl, start_sec, end_sec, threshol
             arr[start_idx:] = 1 - target_val
         return arr
 
-    flags = remove_short_segments(flags, min_movement_duration, target_val=1)
-    flags = remove_short_segments(flags, min_static_duration, target_val=0)
+    flags = remove_short_segments(flags, MIN_MOVEMENT_DURATION, target_val=1)
+    flags = remove_short_segments(flags, MIN_STATIC_DURATION, target_val=0)
 
     # Pad flags to match full video length (if needed)
     camera_movement_flags = [False] * total_frames
@@ -252,9 +254,7 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
     if end_video_time is None:
         end_video_time = video_duration
 
-    camera_movement_flags, transform_magnitudes = detect_camera_movements(
-        video_path, output_pkl, start_video_time, end_video_time, THRESHOLD_CAMERA_MOV
-    )
+    camera_movement_flags, transform_magnitudes = detect_camera_movements(video_path, output_pkl, start_video_time, end_video_time)
 
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -397,7 +397,8 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
         pickle.dump(filtered_results, f)
 
     # Call the update_logfile function
-    log_file = os.path.splitext(video_path)[0] + "_logfile.txt"
+    base_name = os.path.splitext(os.path.basename(video_path))[0]
+    log_file = os.path.join(os.path.dirname(output_pkl), f"{base_name}_logfile.txt")
 
     update_logfile(
         logfile=log_file,
@@ -407,7 +408,10 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
         vertical_scale_factor=VERTICAL_SCALE_FACTOR,
         min_box_width=MIN_BOX_WIDTH,
         max_box_width=MAX_BOX_WIDTH,
-        threshold_camera_mov=THRESHOLD_CAMERA_MOV
+        threshold_camera_mov=THRESHOLD_CAMERA_MOV,
+        smooth_window=SMOOTH_WINDOW,
+        min_movement_duration=MIN_MOVEMENT_DURATION,
+        min_static_duration=MIN_STATIC_DURATION
     )
 
 # === Optional standalone run ===
