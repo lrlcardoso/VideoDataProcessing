@@ -57,6 +57,37 @@ SMOOTH_WINDOW = 15
 MIN_MOVEMENT_DURATION = 10
 MIN_STATIC_DURATION = 120
 
+# === Helper definition to print (on the logfile) the intervals in which camera movement was detected ===
+def get_camera_movement_intervals_from_flags(flags, fps, start_seg):
+    """
+    Returns a list of (start_time, end_time) for all intervals in which
+    camera_movement_flags are True. Times are formatted as hh:mm:ss.hh.
+    """
+    intervals = []
+    in_motion = False
+    for i, flag in enumerate(flags):
+        if flag and not in_motion:
+            in_motion = True
+            start = i
+        elif not flag and in_motion:
+            in_motion = False
+            end = i - 1
+            intervals.append((start, end))
+    if in_motion:
+        intervals.append((start, len(flags) - 1))
+
+    def format_time(idx):
+        total_seconds = (idx / fps) - start_seg
+        if total_seconds < 0:
+            total_seconds = 0
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        seconds = int(total_seconds % 60)
+        hundredths = int((total_seconds - int(total_seconds)) * 100)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{hundredths:02d}"
+
+    return [(format_time(start), format_time(end)) for start, end in intervals]
+
 # === Device setup ===
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if device.type == 'cuda':
@@ -400,6 +431,16 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
     base_name = os.path.splitext(os.path.basename(video_path))[0]
     log_file = os.path.join(os.path.dirname(output_pkl), f"{base_name}_logfile.txt")
 
+    intervals = get_camera_movement_intervals_from_flags(camera_movement_flags, fps, start_video_time)
+
+    # Create a nicely formatted string for the logfile
+    if intervals:
+        camera_movement_log = "  - Camera Movement Intervals:\n"
+        for i, (start, end) in enumerate(intervals, 1):
+            camera_movement_log += f"      {i:02d}. {start} → {end}\n"
+    else:
+        camera_movement_log = "  - Camera Movement Intervals: None detected\n"
+
     update_logfile(
         logfile=log_file,
         routine_name="filter_detection.py",
@@ -411,7 +452,8 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
         threshold_camera_mov=THRESHOLD_CAMERA_MOV,
         smooth_window=SMOOTH_WINDOW,
         min_movement_duration=MIN_MOVEMENT_DURATION,
-        min_static_duration=MIN_STATIC_DURATION
+        min_static_duration=MIN_STATIC_DURATION,
+        camera_movement_log=camera_movement_log
     )
 
 # === Optional standalone run ===

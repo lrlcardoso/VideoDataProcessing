@@ -1,20 +1,22 @@
 """
 ==============================================================================
 Title:          Logfile Updater
-Description:    Logs or updates structured entries containing video processing 
-                parameters, including runtime information, session context, and 
-                inference and Re-ID configuration details.
+Description:    Appends structured log entries detailing video processing routines,
+                including kinematic extraction, filtering, and model parameters 
+                for each session and patient. Now supports explicit logging of
+                detected camera movement intervals for transparent reproducibility.
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
-Date:           2025-04-24
-Version:        1.2
+Date:           2025-04-25
+Version:        1.3
 ==============================================================================
 Usage:
-    Called as a utility function from other scripts (not run directly).
+    This module is intended to be imported and called as a utility function 
+    from other scripts. It is not meant to be executed directly.
 
 Dependencies:
     - Python >= 3.x
-    - Required libraries: os, time, socket
+    - Required libraries: os, socket, datetime, zoneinfo
 
 Changelog:
     - v1.0: [2025-03-25] Initial release
@@ -24,6 +26,8 @@ Changelog:
     - v1.2: [2025-04-24] Added support for segment information, start/end time, 
             and smoothing parameters (SMOOTH_WINDOW, MIN_MOVEMENT_DURATION, 
             MIN_STATIC_DURATION)
+    - v1.3: [2025-04-25] Added detailed logging of camera movement intervals 
+            based on camera_movement_flags. Improved header and documentation.
 ==============================================================================
 """
 
@@ -56,37 +60,44 @@ def update_logfile(
     min_box_width=None,
     max_box_width=None,
     threshold_camera_mov=None,
-    # New fields for 1.2
     segment=None,
     start_time=None,
     end_time=None,
     smooth_window=None,
     min_movement_duration=None,
     min_static_duration=None,
+    camera_movement_log=None, 
 ):
     """
     Appends a structured log entry for a processing routine, capturing session,
     video, and parameter information for reproducibility and tracking.
     """
 
+    import os
+    import socket
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
     pc_name = socket.gethostname()
 
     # Ensure the log file exists
     if not os.path.exists(logfile):
-        with open(logfile, 'w') as file:
-            file.write(f"""==============================================================================
-                            Video Data Processing Log
-==============================================================================
-Description:    Logs the details of video processing, kinematic data extraction, 
-                and model parameters for each session and patient.
-Author:         Lucas R. L. Cardoso
-Project:        VRRehab_UQ-MyTurn
-Version:        1.0
-PC:             {pc_name}
-==============================================================================
-
-LOG ENTRIES:
-==============================================================================
+        with open(logfile, 'w', encoding='utf-8') as file:
+            file.write(f"""==============================================================================  
+                            Video Data Processing Log  
+==============================================================================  
+Description:    Appends detailed log entries of video processing, kinematic data 
+                extraction, filtering, and model parameters for each session and 
+                patient. Now includes explicit camera movement segment reporting 
+                for transparent and reproducible analysis.
+Author:         Lucas R. L. Cardoso  
+Project:        VRRehab_UQ-MyTurn  
+Version:        1.0  
+PC:             {pc_name}  
+==============================================================================  
+  
+LOG ENTRIES:  
+==============================================================================  
 """)
 
     # Get the current timestamp
@@ -154,7 +165,11 @@ LOG ENTRIES:
         log_entry += f"  - MIN_MOVEMENT_DURATION: {min_movement_duration}\n"
     if min_static_duration is not None:
         log_entry += f"  - MIN_STATIC_DURATION: {min_static_duration}\n"
-    
+
+    # === CAMERA MOVEMENT INTERVALS LOG ===
+    if camera_movement_log is not None:
+        log_entry += camera_movement_log
+
     # Append new log entry to file
-    with open(logfile, 'a') as file:
+    with open(logfile, 'a', encoding='utf-8') as file:
         file.write(log_entry)
