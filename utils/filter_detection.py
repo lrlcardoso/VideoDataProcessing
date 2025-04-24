@@ -87,7 +87,7 @@ def compute_shoulder_midpoint(left, right):
     return ((left + right) / 2).tolist()
 
 # === Camera Movement Detection ===
-def detect_camera_movements(video_path, start_sec, end_sec, threshold,
+def detect_camera_movements(video_path, output_pkl, start_sec, end_sec, threshold,
                             smooth_window=15, min_movement_duration=10, min_static_duration=120):
     transform_magnitudes = []
     orb = cv2.ORB_create()
@@ -172,7 +172,7 @@ def detect_camera_movements(video_path, start_sec, end_sec, threshold,
 
     # === Save movement plot ===
     base_name = os.path.splitext(os.path.basename(video_path))[0]
-    plot_output_path = os.path.join(os.path.dirname(video_path), f"{base_name}_camera_movement_plot.png")
+    plot_output_path = os.path.join(os.path.dirname(output_pkl), f"{base_name}_camera_movement_plot.png")
 
     plt.figure(figsize=(12, 6))
     plt.plot(transform_magnitudes, label="Original", color='lightgray')
@@ -242,7 +242,7 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
         end_video_time = video_duration
 
     camera_movement_flags, transform_magnitudes = detect_camera_movements(
-        video_path, start_video_time, end_video_time, THRESHOLD_CAMERA_MOV
+        video_path, output_pkl, start_video_time, end_video_time, THRESHOLD_CAMERA_MOV
     )
 
     model = load_model()

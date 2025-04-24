@@ -39,7 +39,8 @@ from utils.visualization import generate_video
 from utils.logfile_utils import update_logfile
 from utils.filter_detection import run_filter_detection
 from utils.embedding_info import parse_embedding_info
-from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS, FILTER_CONFIG
+from utils.segmentation_info import parse_segmentation_info
+from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS
 
 
 def parse_video_info(video_path):
@@ -112,37 +113,90 @@ def process_video(video_path):
 
 def filter_video(video_path):
     """
-    Handles filtering of already processed video:
+    Handles filtering of already annotated video:
     - Runs detection filtering on existing pickle data
-    - Generates new annotated video with filtered targets
+    - Generates new annotated video and pkl file with filtered targets for each segment of the session
+    (uses the txt file from the manually segmentation to define the segments)
     """
+
+    # Parse info
     patient, session, camera, video_name, base_name = parse_video_info(video_path)
     print(f"---\nProcessing: {patient} | {session} | {camera} | {video_name}\n---")
 
+    # Always look for segmentation file in Camera1 folder
+    # Split the path and find Raw/Processed and VR/NoVR folder dynamically
+    dir_components = video_path.split(os.sep)
+    try:
+        # Find 'Raw' or 'Processed' in path
+        raw_proc_idx = [i for i, p in enumerate(dir_components) if p in ("Raw", "Processed")][0]
+        raw_or_processed = dir_components[raw_proc_idx]
+        patient = dir_components[raw_proc_idx + 1]
+        session = dir_components[raw_proc_idx + 2]
+        video_idx = dir_components.index("Video", raw_proc_idx)
+        vr_folder = dir_components[video_idx + 1]
+    except (ValueError, IndexError):
+        raise RuntimeError(f"Failed to determine Raw/Processed or 'FMA_and_VR', 'VR' or 'CT' folder in: {video_path}")
+
+    camera1_dir = os.path.join(
+        ROOT_DIR,
+        raw_or_processed,
+        patient,
+        session,
+        "Video",
+        vr_folder,
+        "Camera1"
+    )
+
+    segmentation_file = os.path.join(camera1_dir, f"{base_name}_segmentation.txt")
+    if not os.path.isfile(segmentation_file):
+        raise FileNotFoundError(f"Segmentation file not found: {segmentation_file}")
+
+    # Parse embedding info and segments
+    embedding_info, segments = parse_segmentation_info(segmentation_file)
+
+    # Define the input file (processed pickle for the video)
     dir = os.path.dirname(video_path)
     pickle_file = os.path.join(dir, f"{base_name}_kinematic_data.pkl")
-    output_pickle_file = os.path.join(dir, f"{base_name}_kinematic_data_filtered.pkl")
-    output_video = os.path.join(dir, f"{base_name}_annotated_filtered.mp4")
 
-    segmentation_file = os.path.join(dir, f"{base_name}_segmentation.txt")
-    embedding_info = parse_embedding_info(segmentation_file)
+    # Prepare for duplicate segment names
+    segment_count = {}
 
-    run_filter_detection(
-        video_path, pickle_file, output_pickle_file,
-        start_video_time=FILTER_CONFIG["start_video_time"],
-        end_video_time=FILTER_CONFIG["end_video_time"],
-        embedding_info=embedding_info
-    )
+    for seg_name, seg_start, seg_end in segments:
+        # "Session Duration" is skipped by the parser, but double check here
+        if seg_name.lower() == "session duration":
+            continue
+        # Ensure unique folder per segment
+        if seg_name not in segment_count:
+            segment_count[seg_name] = 1
+            folder_name = f"{seg_name}_{segment_count[seg_name]}"
+        else:
+            segment_count[seg_name] += 1
+            folder_name = f"{seg_name}_{segment_count[seg_name]}"
 
-    generate_video(
-        output_pickle_file, 
-        video_path, 
-        output_video,
-        show_only_targets=True, 
-        start_video_time=FILTER_CONFIG["start_video_time"],
-        end_video_time=FILTER_CONFIG["end_video_time"]
-    )
+        dir_segment = os.path.join(dir, "Segments", folder_name)
+        os.makedirs(dir_segment, exist_ok=True)
+        output_pickle_file = os.path.join(dir_segment, f"{base_name}_kinematic_data_filtered.pkl")
+        output_video = os.path.join(dir_segment, f"{base_name}_annotated_filtered.mp4")
 
+        # Call filtering for the segment
+        run_filter_detection(
+            video_path=video_path,
+            pickle_file=pickle_file,
+            output_pkl=output_pickle_file,
+            start_video_time=seg_start,
+            end_video_time=seg_end,
+            embedding_info=embedding_info  # full list, not per segment
+        )
+
+        # Generate the annotated video for the filtered segment
+        generate_video(
+            pkl_file=output_pickle_file,
+            video_source=video_path,
+            output_video=output_video,
+            show_only_targets=True,
+            start_video_time=seg_start,
+            end_video_time=seg_end
+        )
 
 def main(multiple_detection=False, filter_detection=False):
     """

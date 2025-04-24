@@ -15,10 +15,10 @@ Changelog:
 """
 
 ROOT_DIR = r"C:\Users\s4659771\Documents\MyTurn_Project\Data"
-# SELECTED_PATIENTS = ["P01"]
-# SELECTED_SESSIONS = ["Session3"]
-# TARGET_SUBFOLDERS = ["FMA_and_VR", "VR", "CT"]
-# SELECTED_CAMERAS = ["Camera1"]
+SELECTED_PATIENTS = ["P01"]
+SELECTED_SESSIONS = ["Session2"]
+TARGET_SUBFOLDERS = ["FMA_and_VR", "VR", "CT"]
+SELECTED_CAMERAS = ["Camera2"]
 
 
 # # Example 1
@@ -54,12 +54,12 @@ ROOT_DIR = r"C:\Users\s4659771\Documents\MyTurn_Project\Data"
 #     "embedding_info": [[0, 20, 2]]
 # }
 
-# Example 1
-SELECTED_PATIENTS = ["P01"]
-SELECTED_SESSIONS = ["Session2"]
-TARGET_SUBFOLDERS = ["VR"]
-SELECTED_CAMERAS = ["Camera1"]
-FILTER_CONFIG = {
-    "start_video_time": 10*60,
-    "end_video_time": 12*60 + 30,
-}
+# # Example 1
+# SELECTED_PATIENTS = ["P01"]
+# SELECTED_SESSIONS = ["Session2"]
+# TARGET_SUBFOLDERS = ["VR"]
+# SELECTED_CAMERAS = ["Camera1"]
+# FILTER_CONFIG = {
+#     "start_video_time": 10*60,
+#     "end_video_time": 12*60 + 30,
+# }
