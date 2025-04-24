@@ -38,7 +38,6 @@ from utils.data_extraction import extract_movement_data
 from utils.visualization import generate_video
 from utils.logfile_utils import update_logfile
 from utils.filter_detection import run_filter_detection
-from utils.embedding_info import parse_embedding_info
 from utils.segmentation_info import parse_segmentation_info
 from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS
 
