@@ -8,7 +8,7 @@ Description:    Filters tracking results by computing cosine similarity between
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-04-15
-Version:        1.1
+Version:        1.2
 ==============================================================================
 Usage:
     python filter_detection.py
@@ -20,10 +20,14 @@ Dependencies:
 
 Changelog:
     - v1.0: [2025-04-15] Initial release
-    - v1.1: [2025-04-17] Extended logfile entries to include filtering parameters 
-                         such as HISTORY_WINDOW, SHOULDER_WIDTH_SCALE, 
-                         VERTICAL_SCALE_FACTOR, MIN_BOX_WIDTH, MAX_BOX_WIDTH, 
-                         and THRESHOLD_CAMERA_MOV.
+    - v1.1: [2025-04-17] Extended logfile entries to include filtering 
+                         parameters such as HISTORY_WINDOW, 
+                         SHOULDER_WIDTH_SCALE, VERTICAL_SCALE_FACTOR, 
+                         MIN_BOX_WIDTH, MAX_BOX_WIDTH, and 
+                         THRESHOLD_CAMERA_MOV.
+    - v1.2: [2025-04-24] Run the filter for each segment. Target embedding is 
+                         computed outside the filter method. Also updated the 
+                         status display.
 ==============================================================================
 """
 

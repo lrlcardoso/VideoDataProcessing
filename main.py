@@ -7,7 +7,7 @@ Description:    Processes raw videos by adjusting resolution/FPS, extracting
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-03-25
-Version:        1.1
+Version:        1.2
 ==============================================================================
 Usage:
     python main.py [--multiple_detection] [--filter_detection]
@@ -26,6 +26,11 @@ Notes:
 Changelog:
     - v1.0: [2025-03-25] Initial release
     - v1.1: [2025-04-15] Added the --filter_detection logic
+    - v1.2: [2025-04-24] Run the filter for each segment and create the 
+                         embedding only once, always using the Camera1 video 
+                         and pkl file. Also updated the status display for the 
+                         filter detection. Still need to update for he multiple 
+                         detection.
 ==============================================================================
 """
 

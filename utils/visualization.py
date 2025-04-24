@@ -8,7 +8,7 @@ Description:    Processes a video by overlaying bounding boxes, person IDs,
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-03-25
-Version:        1.1
+Version:        1.2
 ==============================================================================
 Usage:
     python <script_name>.py
@@ -21,6 +21,7 @@ Changelog:
     - v1.0: [2025-03-25] Initial release
     - v1.1: [2025-04-15] Added support for trimming the video using start and 
                          stop seconds
+    - v1.2: [2025-04-24] Updated the status display, including a status bar
 ==============================================================================
 """
 
