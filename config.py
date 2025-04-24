@@ -2,15 +2,18 @@
 ==============================================================================
 Title:          Configuration Settings
 Description:    Defines the root directory and selected patients, sessions, 
-                and target subfolders for the VRRehab_UQ-MyTurn project.
+                target subfolders, and camera for the VRRehab_UQ-MyTurn 
+                project.
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-03-25
-Version:        1.1
+Version:        1.2
 
 Changelog:
     - v1.0: [2025-03-25] Initial release
     - v1.1: [2025-04-15] Added the variable FILTER_CONFIG
+    - v1.2: [2025-04-24] Removed the variable FILTER_CONFIG that is now 
+                         obtained from the segmentation txt file. 
 ==============================================================================
 """
 
