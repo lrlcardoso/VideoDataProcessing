@@ -233,7 +233,7 @@ def process_video(pkl_file, video_path, output_video_path, start_video_time, end
 
     with tqdm(
         total=total_frames,
-        desc="🔄 [3/3] Generating annotated video",
+        desc="🔄 [3/4] Generating annotated video",
         unit="frame"
     ) as pbar:
         while cap.isOpened():

@@ -186,7 +186,7 @@ def detect_camera_movements(video_path, output_pkl, start_sec, end_sec):
 
     frame_number = start_frame + 1
 
-    for _ in tqdm(range(start_frame + 1, end_frame), desc=f"🔄 [1/3] Detecting camera movement"):
+    for _ in tqdm(range(start_frame + 1, end_frame), desc=f"🔄 [1/4] Detecting camera movement"):
         ret, frame = cap.read()
         if not ret:
             break
@@ -297,7 +297,7 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
     prev_box_height = MIN_BOX_WIDTH * VERTICAL_SCALE_FACTOR
     mag_idx = 0
 
-    for frame_idx in tqdm(range(start_frame, end_frame), desc=f"🔄 [2/3] Filtering frames"):
+    for frame_idx in tqdm(range(start_frame, end_frame), desc=f"🔄 [2/4] Filtering frames"):
         if frame_idx >= len(results):
             break
 

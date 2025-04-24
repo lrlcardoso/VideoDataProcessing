@@ -45,6 +45,7 @@ from utils.visualization import generate_video
 from utils.logfile_utils import update_logfile
 from utils.filter_detection import run_filter_detection, create_target_embedding
 from utils.segmentation_info import parse_segmentation_info
+from utils.csv_utils import generate_csv
 from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS
 
 
@@ -224,6 +225,7 @@ def filter_video(video_path):
         os.makedirs(dir_segment, exist_ok=True)
         output_pickle_file = os.path.join(dir_segment, f"{base_name}_kinematic_data_filtered.pkl")
         output_video = os.path.join(dir_segment, f"{base_name}_annotated_filtered.mp4")
+        output_csv = os.path.join(dir_segment, f"{base_name}_markers_filtered.csv")
 
         print(f"\n📂 Segment: {folder_name}")
         print("-"*100)
@@ -260,6 +262,13 @@ def filter_video(video_path):
             show_only_targets=True,
             start_video_time=seg_start,
             end_video_time=seg_end
+        )
+        
+        generate_csv(
+            video_path=video_path,
+            pkl_file=output_pickle_file,
+            output_csv=output_csv,
+            start_video_time=seg_start
         )
 
     # End the timer after processing the video
