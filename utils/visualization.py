@@ -20,7 +20,7 @@ Dependencies:
 Changelog:
     - v1.0: [2025-03-25] Initial release
     - v1.1: [2025-04-15] Added support for trimming the video using start and 
-    stop seconds
+                         stop seconds
 ==============================================================================
 """
 
@@ -28,6 +28,7 @@ import cv2
 import subprocess
 import pickle
 import time
+from tqdm import tqdm
 
 # Method to draw the bounding box and person ID on the frame
 def draw_bounding_box_with_id(frame, box, person_id, box_color):
@@ -226,22 +227,29 @@ def process_video(pkl_file, video_path, output_video_path, start_video_time, end
     cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     frame_idx = 0
 
-    while cap.isOpened():
-        current_frame = start_frame + frame_idx
-        if current_frame >= end_frame or frame_idx >= len(extracted_data):
-            break
+    # Calculate total number of frames to process
+    total_frames = min(end_frame - start_frame, len(extracted_data))
 
-        ret, frame = cap.read()
-        if not ret:
-            break
+    with tqdm(
+        total=total_frames,
+        desc="🔄 [3/3] Generating annotated video",
+        unit="frame"
+    ) as pbar:
+        while cap.isOpened():
+            current_frame = start_frame + frame_idx
+            if current_frame >= end_frame or frame_idx >= len(extracted_data):
+                break
 
-        data = extracted_data[frame_idx]
-        # data = extracted_data[current_frame]
-        process_frame(frame, data, show_only_targets)
-        process.stdin.write(frame.tobytes())
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        print(f"\rProcessing frame {current_frame + 1}/{end_frame}", end="", flush=True)
-        frame_idx += 1
+            data = extracted_data[frame_idx]
+            process_frame(frame, data, show_only_targets)
+            process.stdin.write(frame.tobytes())
+
+            frame_idx += 1
+            pbar.update(1)
 
     # Release the video capture and finish processing
     cap.release()
@@ -251,16 +259,12 @@ def process_video(pkl_file, video_path, output_video_path, start_video_time, end
     # End the timer after processing the video
     end_time = time.time()
 
-    # Print the total execution time for processing the video
-    print()  # To move to the next line after the progress
-    print(f"Execution time: {end_time - start_time:.2f} seconds", flush=True)
+    # # Print the total execution time for processing the video
+    # print()  # To move to the next line after the progress
+    # print(f"Execution time: {end_time - start_time:.2f} seconds", flush=True)
 
 
 def generate_video(pkl_file, video_source, output_video, start_video_time, end_video_time, show_only_targets):
-
-    print()
-    print("-> Generating Annotated Video...")
-    print()
 
     process_video(pkl_file, video_source, output_video, start_video_time, end_video_time, show_only_targets)
 

@@ -69,7 +69,9 @@ def process_video(video_path):
     - Generates annotated output
     """
     patient, session, camera, video_name, base_name = parse_video_info(video_path)
-    print(f"---\nProcessing: {patient} | {session} | {camera} | {video_name}\n---")
+    print("="*100)
+    print(f"📝 Processing: {patient} | {session} | {camera} | {video_name}")
+    print("="*100)
 
     output_dir = os.path.dirname(video_path).replace("Raw", "Processed")
     os.makedirs(output_dir, exist_ok=True)
@@ -121,7 +123,9 @@ def filter_video(video_path):
 
     # Parse info
     patient, session, camera, video_name, base_name = parse_video_info(video_path)
-    print(f"---\nProcessing: {patient} | {session} | {camera} | {video_name}\n---")
+    print("="*100)
+    print(f"📝 Processing: {patient} | {session} | {camera} | {video_name}")
+    print("="*100)
 
     # Always look for segmentation file in Camera1 folder
     # Split the path and find Raw/Processed and VR/NoVR folder dynamically
@@ -169,6 +173,9 @@ def filter_video(video_path):
     # Prepare for duplicate segment names
     segment_count = {}
     for seg_name, seg_start, seg_end in segments:
+        
+        start_time = time.time()
+
         # "Session Duration" is skipped by the parser, but double check here
         if seg_name.lower() == "session duration":
             continue
@@ -184,6 +191,9 @@ def filter_video(video_path):
         os.makedirs(dir_segment, exist_ok=True)
         output_pickle_file = os.path.join(dir_segment, f"{base_name}_kinematic_data_filtered.pkl")
         output_video = os.path.join(dir_segment, f"{base_name}_annotated_filtered.mp4")
+
+        print(f"\n📂 Segment: {folder_name}")
+        print("-"*100)
 
         # Call filtering for the segment
         run_filter_detection(
@@ -204,6 +214,13 @@ def filter_video(video_path):
             start_video_time=seg_start,
             end_video_time=seg_end
         )
+
+    # End the timer after processing the video
+    end_time = time.time()
+
+    print()  # To move to the next line after the progress
+    print(f"Execution time for the segment: {end_time - start_time:.2f} seconds", flush=True)
+    print()
 
 def main(multiple_detection=False, filter_detection=False):
     """
