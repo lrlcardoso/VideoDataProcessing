@@ -32,12 +32,13 @@ Changelog:
 import os
 import time
 import argparse
+import pickle
 from utils.file_utils import find_videos
 from utils.video_processing import change_video_fps_and_res
 from utils.data_extraction import extract_movement_data
 from utils.visualization import generate_video
 from utils.logfile_utils import update_logfile
-from utils.filter_detection import run_filter_detection
+from utils.filter_detection import run_filter_detection, create_target_embedding
 from utils.segmentation_info import parse_segmentation_info
 from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS
 
@@ -157,9 +158,16 @@ def filter_video(video_path):
     dir = os.path.dirname(video_path)
     pickle_file = os.path.join(dir, f"{base_name}_kinematic_data.pkl")
 
+    # Compute the embedding ONCE, using the video on Camera1 and the respective pkl file
+    embedding_video = os.path.join(camera1_dir, video_name)
+    # Load kinematic data for embedding computation
+    pickle_file_embedding = os.path.join(camera1_dir, f"{base_name}_kinematic_data.pkl")
+    with open(pickle_file_embedding, 'rb') as f:
+        results_embedding = pickle.load(f)
+    target_embedding = create_target_embedding(embedding_video, results_embedding, embedding_info)
+
     # Prepare for duplicate segment names
     segment_count = {}
-
     for seg_name, seg_start, seg_end in segments:
         # "Session Duration" is skipped by the parser, but double check here
         if seg_name.lower() == "session duration":
@@ -184,7 +192,7 @@ def filter_video(video_path):
             output_pkl=output_pickle_file,
             start_video_time=seg_start,
             end_video_time=seg_end,
-            embedding_info=embedding_info  # full list, not per segment
+            target_embedding=target_embedding
         )
 
         # Generate the annotated video for the filtered segment

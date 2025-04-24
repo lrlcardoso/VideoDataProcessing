@@ -79,6 +79,45 @@ def load_model():
     model.to(device)
     return model
 
+model = load_model()
+transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((256, 128)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+# === Embedding Computation for Target Person ===
+def create_target_embedding(video_path, results, embedding_info):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    embedding_sum = None
+    count = 0
+
+    for start, stop, target_id in embedding_info:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(start * fps))
+        for frame_idx in tqdm(range(int(start * fps), int(stop * fps)), desc=f"Creating embedding for ID {target_id}"):
+            if frame_idx >= len(results):
+                break
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame_data = results[frame_idx]
+            boxes, ids = frame_data.get("boxes"), frame_data.get("ids")
+            if boxes is None or len(boxes) == 0:
+                continue
+            for box, id_ in zip(boxes, ids):
+                if id_ == target_id:
+                    emb = get_embedding(get_crop(frame, box), model, transform)
+                    embedding_sum = emb if embedding_sum is None else embedding_sum + emb
+                    count += 1
+
+    cap.release()
+    if count == 0:
+        raise ValueError("No embeddings found for the provided intervals and IDs.")
+
+    return embedding_sum / count
+
 def compute_shoulder_midpoint(left, right):
     left = np.array(left)
     right = np.array(right)
@@ -189,40 +228,12 @@ def detect_camera_movements(video_path, output_pkl, start_sec, end_sec, threshol
 
     return camera_movement_flags, transform_magnitudes
 
-# === Embedding Computation for Target Person ===
-def create_target_embedding(video_path, model, transform, results, embedding_info):
-    cap = cv2.VideoCapture(video_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    embedding_sum = None
-    count = 0
-
-    for start, stop, target_id in embedding_info:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(start * fps))
-        for frame_idx in tqdm(range(int(start * fps), int(stop * fps)), desc=f"Creating embedding for ID {target_id}"):
-            if frame_idx >= len(results):
-                break
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame_data = results[frame_idx]
-            boxes, ids = frame_data.get("boxes"), frame_data.get("ids")
-            if boxes is None or len(boxes) == 0:
-                continue
-            for box, id_ in zip(boxes, ids):
-                if id_ == target_id:
-                    emb = get_embedding(get_crop(frame, box), model, transform)
-                    embedding_sum = emb if embedding_sum is None else embedding_sum + emb
-                    count += 1
-
-    cap.release()
-    if count == 0:
-        raise ValueError("No embeddings found for the provided intervals and IDs.")
-
-    return embedding_sum / count
-
 # === Main Detection Logic ===
-def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=None, end_video_time=None, embedding_info=[]):
+def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=None, end_video_time=None, target_embedding=None):
     
+    if target_embedding is None:
+        raise ValueError("target_embedding must be provided!")
+
     print()
     print("-> Filtering Detection...")
     print()
@@ -244,16 +255,6 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
     camera_movement_flags, transform_magnitudes = detect_camera_movements(
         video_path, output_pkl, start_video_time, end_video_time, THRESHOLD_CAMERA_MOV
     )
-
-    model = load_model()
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((256, 128)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-
-    target_embedding = create_target_embedding(video_path, model, transform, results, embedding_info)
 
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
