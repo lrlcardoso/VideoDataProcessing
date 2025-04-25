@@ -227,10 +227,9 @@ def filter_video(video_path):
         output_video = os.path.join(dir_segment, f"{base_name}_annotated_filtered.mp4")
         output_csv = os.path.join(dir_segment, f"{base_name}_markers_filtered.csv")
 
-        print(f"\n📂 Segment: {folder_name}")
-        print("-"*100)
-
         print()
+        print(f"📂 Segment: {folder_name}")
+        print("-"*100)
 
         update_logfile(
             logfile=os.path.join(dir_segment, f"{base_name}_logfile.txt"),
@@ -271,19 +270,19 @@ def filter_video(video_path):
             start_video_time=seg_start
         )
 
-    # End the timer after processing the video
-    end_time = time.time()
+        # End the timer after processing the segment
+        end_time = time.time()
 
-    print()  # To move to the next line after the progress
-    print(f"Execution time for the segment: {end_time - start_time:.2f} seconds", flush=True)
-    print()
+        print()  # To move to the next line after the progress
+        print(f"Execution time for the segment: {end_time - start_time:.2f} seconds", flush=True)
+        print()  # Ensures the next line starts fresh
 
 def main(multiple_detection=False, filter_detection=False):
     """
     Entry point for batch video processing.
     Selects mode based on args, finds videos, and applies processing.
     """
-    start_time = time.time()
+    start_time_all = time.time()
 
     if multiple_detection or filter_detection:
         mode = "Raw" if multiple_detection else "Processed"
@@ -295,7 +294,7 @@ def main(multiple_detection=False, filter_detection=False):
     else:
         print('Error: Please choose one of the following options: --multiple_detection or --filter_detection.')
 
-    print(f"---\nAll videos processed in {time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time))}.\n---\n")
+    print(f"---\nAll videos processed in {time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time_all))}.\n---\n")
 
 
 if __name__ == "__main__":
