@@ -18,10 +18,10 @@ Changelog:
 """
 
 ROOT_DIR = r"C:\Users\s4659771\Documents\MyTurn_Project\Data"
-SELECTED_PATIENTS = ["P01"]
-SELECTED_SESSIONS = ["Session2"]
+SELECTED_PATIENTS = ["P02", "P03", "P04", "P05"]
+SELECTED_SESSIONS = ["Session2", "Session3"]
 TARGET_SUBFOLDERS = ["FMA_and_VR", "VR", "CT"]
-SELECTED_CAMERAS = ["Camera1"]
+SELECTED_CAMERAS = ["Camera1", "Camera2"]
 
 
 # # Example 1
