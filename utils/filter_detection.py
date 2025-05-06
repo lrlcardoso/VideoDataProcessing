@@ -1,14 +1,15 @@
 """
 ==============================================================================
 Title:          Filter Detection and Target Similarity Estimation
-Description:    Filters tracking results by computing cosine similarity between
-                each person and a target embedding. Also detects camera motion,
-                manages bounding box constraints, and saves midpoints and flags
-                to a .pkl file for downstream visualization.
+Description:    Filters tracking results by computing cosine similarity and 
+                color histogram similarity between each person and a target 
+                embedding. Also detects camera motion, manages bounding box 
+                constraints, and saves midpoints and flags to a .pkl file for 
+                downstream visualization.
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-04-15
-Version:        1.2
+Version:        1.3
 ==============================================================================
 Usage:
     python filter_detection.py
@@ -28,6 +29,11 @@ Changelog:
     - v1.2: [2025-04-24] Run the filter for each segment. Target embedding is 
                          computed outside the filter method. Also updated the 
                          status display.
+    - v1.3: [2025-05-06] Added target color histogram computation to the 
+                         embedding definition. Combined cosine and histogram 
+                         similarities for better re-identification accuracy. 
+                         Also fixed a bug where incorrect frame positions were 
+                         being processed.
 ==============================================================================
 """
 
@@ -56,6 +62,8 @@ THRESHOLD_CAMERA_MOV = 10
 SMOOTH_WINDOW = 15
 MIN_MOVEMENT_DURATION = 10
 MIN_STATIC_DURATION = 120
+ALPHA = 0.8  # weight for cosine sim
+BETA = 0.2   # weight for color histogram
 
 # === Helper definition to print (on the logfile) the intervals in which camera movement was detected ===
 def get_camera_movement_intervals_from_flags(flags, fps, start_seg):
@@ -130,6 +138,7 @@ def create_target_embedding(video_path, results, embedding_info):
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     embedding_sum = None
+    hist_sum = None
     count = 0
 
     for start, stop, target_id in embedding_info:
@@ -148,13 +157,27 @@ def create_target_embedding(video_path, results, embedding_info):
                 if id_ == target_id:
                     emb = get_embedding(get_crop(frame, box), model, transform)
                     embedding_sum = emb if embedding_sum is None else embedding_sum + emb
+                    hist = compute_histogram(get_crop(frame, box))
+                    hist_sum = hist if hist_sum is None else hist_sum + hist
                     count += 1
 
     cap.release()
     if count == 0:
         raise ValueError("No embeddings found for the provided intervals and IDs.")
 
-    return embedding_sum / count
+    return embedding_sum / count, hist_sum / count
+
+def compute_histogram(image, bins=(8, 8, 8)):
+    # Convert BGR to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # Compute a 3D HSV histogram
+    hist = cv2.calcHist([hsv], [0, 1, 2], None, bins, [0, 180, 0, 256, 0, 256])
+    cv2.normalize(hist, hist, norm_type=cv2.NORM_L1)
+    return hist.flatten()
+
+def compare_histograms(hist1, hist2):
+
+    return cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
 def compute_shoulder_midpoint(left, right):
     left = np.array(left)
@@ -266,7 +289,7 @@ def detect_camera_movements(video_path, output_pkl, start_sec, end_sec):
     return camera_movement_flags, transform_magnitudes
 
 # === Main Detection Logic ===
-def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=None, end_video_time=None, target_embedding=None):
+def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=None, end_video_time=None, target_embedding=None, target_hist=None):
     
     if target_embedding is None:
         raise ValueError("target_embedding must be provided!")
@@ -298,6 +321,9 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
     mag_idx = 0
 
     for frame_idx in tqdm(range(start_frame, end_frame), desc=f"🔄 [2/4] Filtering frames"):
+
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+
         if frame_idx >= len(results):
             break
 
@@ -335,14 +361,25 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
             embs = model(images).cpu().numpy()
         # Compute embeddings and similarities for ALL persons
         sims = cosine_similarity(target_embedding, embs)[0]
-        frame_data["similarities"] = sims.tolist()
+
+        # Now enhance with color histogram:
+        hist_scores = []
+        for crop in crops:
+            hist = compute_histogram(crop)
+            hist_score = compare_histograms(target_hist, hist)
+            hist_scores.append(hist_score)
+
+        # Combine both scores (you can tune the weights later)
+        combined_scores = ALPHA * sims + BETA * np.array(hist_scores)
+
+        frame_data["similarities"] = combined_scores.tolist()
 
         # Compute midpoints for all persons
         mids = [compute_shoulder_midpoint(kp[LEFT_SHOULDER], kp[RIGHT_SHOULDER]) for kp in keypoints]
         frame_data["mid_points"] = mids
 
         # Select best match (target) based on max similarity
-        best_idx = np.argmax(sims)
+        best_idx = np.argmax(combined_scores)
         target_kps = keypoints[best_idx]
 
         mid = compute_shoulder_midpoint(target_kps[LEFT_SHOULDER], target_kps[RIGHT_SHOULDER])
@@ -453,6 +490,8 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
         smooth_window=SMOOTH_WINDOW,
         min_movement_duration=MIN_MOVEMENT_DURATION,
         min_static_duration=MIN_STATIC_DURATION,
+        alpha_combined_scores=ALPHA,
+        beta_combined_scores=BETA,
         camera_movement_log=camera_movement_log
     )
 

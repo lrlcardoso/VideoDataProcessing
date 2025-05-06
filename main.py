@@ -7,7 +7,7 @@ Description:    Processes raw videos by adjusting resolution/FPS, extracting
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-03-25
-Version:        1.2
+Version:        1.3
 ==============================================================================
 Usage:
     python main.py [--multiple_detection] [--filter_detection]
@@ -29,8 +29,11 @@ Changelog:
     - v1.2: [2025-04-24] Run the filter for each segment and create the 
                          embedding only once, always using the Camera1 video 
                          and pkl file. Also updated the status display for the 
-                         filter detection. Still need to update for he multiple 
+                         filter detection. Still need to update for the multiple 
                          detection.
+    - v1.3: [2025-05-06] Added support to process only selected segment indices 
+                         via SELECTED_SEGMENTS. Also updated embedding generation 
+                         to return the target color histogram (target_hist).
 ==============================================================================
 """
 
@@ -46,7 +49,7 @@ from utils.logfile_utils import update_logfile
 from utils.filter_detection import run_filter_detection, create_target_embedding
 from utils.segmentation_info import parse_segmentation_info
 from utils.csv_utils import generate_csv
-from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS
+from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS, SELECTED_SEGMENTS
 
 
 def parse_video_info(video_path):
@@ -202,24 +205,32 @@ def filter_video(video_path):
     pickle_file_embedding = os.path.join(camera1_dir, f"{base_name}_kinematic_data.pkl")
     with open(pickle_file_embedding, 'rb') as f:
         results_embedding = pickle.load(f)
-    target_embedding = create_target_embedding(embedding_video, results_embedding, embedding_info)
+    target_embedding, target_hist = create_target_embedding(embedding_video, results_embedding, embedding_info)
 
-    # Prepare for duplicate segment names
-    segment_count = {}
-    for seg_name, seg_start, seg_end in segments:
-        
+    # === Compute persistent segment indices first ===
+    segment_count_tracker = {}
+    segment_indices = []
+
+    for seg_name, _, _ in segments:
+        if seg_name not in segment_count_tracker:
+            segment_count_tracker[seg_name] = 1
+        else:
+            segment_count_tracker[seg_name] += 1
+        segment_indices.append(f"{seg_name}_{segment_count_tracker[seg_name]}")
+
+    # === Main loop with consistent folder naming ===
+    for idx, (seg_name, seg_start, seg_end) in enumerate(segments):
+        if SELECTED_SEGMENTS is not None and idx not in SELECTED_SEGMENTS:
+            continue
+
         start_time = time.time()
 
-        # "Session Duration" is skipped by the parser, but double check here
+        # Skip session-wide placeholder segments
         if seg_name.lower() == "session duration":
             continue
-        # Ensure unique folder per segment
-        if seg_name not in segment_count:
-            segment_count[seg_name] = 1
-            folder_name = f"{seg_name}_{segment_count[seg_name]}"
-        else:
-            segment_count[seg_name] += 1
-            folder_name = f"{seg_name}_{segment_count[seg_name]}"
+
+        # Get the precomputed consistent folder name
+        folder_name = segment_indices[idx]
 
         dir_segment = os.path.join(dir, "Segments", folder_name)
         os.makedirs(dir_segment, exist_ok=True)
@@ -229,7 +240,7 @@ def filter_video(video_path):
 
         print()
         print(f"📂 Segment: {folder_name}")
-        print("-"*100)
+        print("-" * 100)
 
         update_logfile(
             logfile=os.path.join(dir_segment, f"{base_name}_logfile.txt"),
@@ -250,7 +261,8 @@ def filter_video(video_path):
             output_pkl=output_pickle_file,
             start_video_time=seg_start,
             end_video_time=seg_end,
-            target_embedding=target_embedding
+            target_embedding=target_embedding,
+            target_hist=target_hist
         )
 
         # Generate the annotated video for the filtered segment

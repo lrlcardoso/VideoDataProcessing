@@ -8,7 +8,7 @@ Description:    Appends structured log entries detailing video processing routin
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-04-25
-Version:        1.3
+Version:        1.4
 ==============================================================================
 Usage:
     This module is intended to be imported and called as a utility function 
@@ -28,6 +28,8 @@ Changelog:
             MIN_STATIC_DURATION)
     - v1.3: [2025-04-25] Added detailed logging of camera movement intervals 
             based on camera_movement_flags. Improved header and documentation.
+    - v1.4: [2025-05-06] Added the alpha_combined_scores and 
+            beta_combined_scores parameters.
 ==============================================================================
 """
 
@@ -66,7 +68,9 @@ def update_logfile(
     smooth_window=None,
     min_movement_duration=None,
     min_static_duration=None,
-    camera_movement_log=None, 
+    alpha_combined_scores=None,
+    beta_combined_scores=None,
+    camera_movement_log=None
 ):
     """
     Appends a structured log entry for a processing routine, capturing session,
@@ -165,6 +169,10 @@ LOG ENTRIES:
         log_entry += f"  - MIN_MOVEMENT_DURATION: {min_movement_duration}\n"
     if min_static_duration is not None:
         log_entry += f"  - MIN_STATIC_DURATION: {min_static_duration}\n"
+    if alpha_combined_scores is not None:
+        log_entry += f"  - ALPHA_COMBINED_SCORES: {alpha_combined_scores}\n"
+    if beta_combined_scores is not None:
+        log_entry += f"  - BETA_COMBINED_SCORES: {beta_combined_scores}\n"
 
     # === CAMERA MOVEMENT INTERVALS LOG ===
     if camera_movement_log is not None:
