@@ -20,8 +20,13 @@ Changelog:
 """
 
 ROOT_DIR = r"C:\Users\s4659771\Documents\MyTurn_Project\Data"
-SELECTED_PATIENTS = ["P07","P08","P09"]
+SELECTED_PATIENTS = ["P01"]
 SELECTED_SESSIONS = ["Session1"]
 TARGET_SUBFOLDERS = ["FMA_and_VR", "VR", "CT"]
-SELECTED_CAMERAS = ["Camera1","Camera2"]
-SELECTED_SEGMENTS = None
+SELECTED_CAMERAS = ["Camera2"]
+SELECTED_SEGMENTS = [8]
+TARGET_ID = None
+IGNORE_IDS = [814]
+
+
+# python main.py --filter_detection

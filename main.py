@@ -49,7 +49,7 @@ from utils.logfile_utils import update_logfile
 from utils.filter_detection import run_filter_detection, create_target_embedding
 from utils.segmentation_info import parse_segmentation_info
 from utils.csv_utils import generate_csv
-from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS, SELECTED_SEGMENTS
+from config import ROOT_DIR, SELECTED_PATIENTS, SELECTED_SESSIONS, TARGET_SUBFOLDERS, SELECTED_CAMERAS, SELECTED_SEGMENTS, TARGET_ID, IGNORE_IDS
 
 
 def parse_video_info(video_path):
@@ -262,7 +262,9 @@ def filter_video(video_path):
             start_video_time=seg_start,
             end_video_time=seg_end,
             target_embedding=target_embedding,
-            target_hist=target_hist
+            target_hist=target_hist,
+            target_id=TARGET_ID,
+            ignore_ids=IGNORE_IDS
         )
 
         # Generate the annotated video for the filtered segment

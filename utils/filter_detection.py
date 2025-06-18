@@ -54,10 +54,10 @@ import matplotlib.pyplot as plt
 LEFT_SHOULDER = 5
 RIGHT_SHOULDER = 6
 HISTORY_WINDOW = 15
-SHOULDER_WIDTH_SCALE = 0.8
+SHOULDER_WIDTH_SCALE = 0.8 
 VERTICAL_SCALE_FACTOR = 1.3
 MIN_BOX_WIDTH = 100
-MAX_BOX_WIDTH = 280
+MAX_BOX_WIDTH = 280 
 THRESHOLD_CAMERA_MOV = 10
 SMOOTH_WINDOW = 15
 MIN_MOVEMENT_DURATION = 10
@@ -289,7 +289,7 @@ def detect_camera_movements(video_path, output_pkl, start_sec, end_sec):
     return camera_movement_flags, transform_magnitudes
 
 # === Main Detection Logic ===
-def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=None, end_video_time=None, target_embedding=None, target_hist=None):
+def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=None, end_video_time=None, target_embedding=None, target_hist=None, target_id=None, ignore_ids=None):
     
     if target_embedding is None:
         raise ValueError("target_embedding must be provided!")
@@ -378,48 +378,73 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
         mids = [compute_shoulder_midpoint(kp[LEFT_SHOULDER], kp[RIGHT_SHOULDER]) for kp in keypoints]
         frame_data["mid_points"] = mids
 
-        # Select best match (target) based on max similarity
-        best_idx = np.argmax(combined_scores)
-        target_kps = keypoints[best_idx]
+        if target_id is not None and frame_idx == start_frame:
+            # This will return an array of indices where the condition is True
+            matching_indices = np.where(frame_data["ids"] == target_id)[0]
 
-        mid = compute_shoulder_midpoint(target_kps[LEFT_SHOULDER], target_kps[RIGHT_SHOULDER])
-
-        if mid is not None:
-            shoulder_dist = abs(target_kps[LEFT_SHOULDER][0] - target_kps[RIGHT_SHOULDER][0])
-            box_width = min(max(SHOULDER_WIDTH_SCALE * shoulder_dist, MIN_BOX_WIDTH), MAX_BOX_WIDTH)
-            box_height = VERTICAL_SCALE_FACTOR * box_width
-            prev_box_width = box_width
-            prev_box_height = box_height
+            # Get the first match if it exists
+            if matching_indices.size > 0:
+                best_idx = matching_indices[0]
+            else:
+                raise ValueError(f"Target ID {target_id} not found in frame_data['ids'] at frame {frame_idx}.")
         else:
-            box_width = prev_box_width
-            box_height = prev_box_height
+            # Select best match (target) based on max similarity
+            if ignore_ids is None:
+                best_idx = np.argmax(combined_scores)
+            else:
+                sorted_indices = np.argsort(combined_scores)[::-1]  # Indices sorted by descending score
+                for idx in sorted_indices:
+                    if frame_data["ids"][idx] not in ignore_ids:
+                        best_idx = idx
 
-        if (
-            mid is not None and avg_mid is not None and
-            abs(mid[0] - avg_mid[0]) <= box_width / 2 and
-            abs(mid[1] - avg_mid[1]) <= box_height / 2
-        ) or avg_mid is None:
-            recent_mids.append(mid)
-        else:
-            found = False
-            for i, kp in enumerate(keypoints):
-                if i == best_idx:
-                    continue
-                m = compute_shoulder_midpoint(kp[LEFT_SHOULDER], kp[RIGHT_SHOULDER])
-                if m is None:
-                    continue
-                shoulder_dist = abs(kp[LEFT_SHOULDER][0] - kp[RIGHT_SHOULDER][0])
-                candidate_box_width = min(max(SHOULDER_WIDTH_SCALE * shoulder_dist, MIN_BOX_WIDTH), MAX_BOX_WIDTH)
-                candidate_box_height = VERTICAL_SCALE_FACTOR * candidate_box_width
-                if abs(m[0] - avg_mid[0]) <= candidate_box_width / 2 and abs(m[1] - avg_mid[1]) <= candidate_box_height / 2:
-                    best_idx = i
-                    recent_mids.append(m)
-                    prev_box_width = candidate_box_width
-                    prev_box_height = candidate_box_height
-                    found = True
-                    break
-            if not found:
-                best_idx = None
+                        if frame_idx>(1434+start_frame) and frame_idx<(1441+start_frame):
+                            print(frame_data["ids"][best_idx])
+
+                        break
+                else:
+                    best_idx = None
+
+        if best_idx is not None:
+            target_kps = keypoints[best_idx]
+
+            mid = compute_shoulder_midpoint(target_kps[LEFT_SHOULDER], target_kps[RIGHT_SHOULDER])
+
+            if mid is not None:
+                shoulder_dist = abs(target_kps[LEFT_SHOULDER][0] - target_kps[RIGHT_SHOULDER][0])
+                box_width = min(max(SHOULDER_WIDTH_SCALE * shoulder_dist, MIN_BOX_WIDTH), MAX_BOX_WIDTH)
+                box_height = VERTICAL_SCALE_FACTOR * box_width
+                prev_box_width = box_width
+                prev_box_height = box_height
+            else:
+                box_width = prev_box_width
+                box_height = prev_box_height
+
+            if (
+                mid is not None and avg_mid is not None and
+                abs(mid[0] - avg_mid[0]) <= box_width / 2 and
+                abs(mid[1] - avg_mid[1]) <= box_height / 2
+            ) or avg_mid is None:
+                recent_mids.append(mid)
+            else:
+                found = False
+                for i, kp in enumerate(keypoints):
+                    if i == best_idx:
+                        continue
+                    m = compute_shoulder_midpoint(kp[LEFT_SHOULDER], kp[RIGHT_SHOULDER])
+                    if m is None:
+                        continue
+                    shoulder_dist = abs(kp[LEFT_SHOULDER][0] - kp[RIGHT_SHOULDER][0])
+                    candidate_box_width = min(max(SHOULDER_WIDTH_SCALE * shoulder_dist, MIN_BOX_WIDTH), MAX_BOX_WIDTH)
+                    candidate_box_height = VERTICAL_SCALE_FACTOR * candidate_box_width
+                    if abs(m[0] - avg_mid[0]) <= candidate_box_width / 2 and abs(m[1] - avg_mid[1]) <= candidate_box_height / 2:
+                        best_idx = i
+                        recent_mids.append(m)
+                        prev_box_width = candidate_box_width
+                        prev_box_height = candidate_box_height
+                        found = True
+                        break
+                if not found:
+                    best_idx = None
 
         if len(recent_mids) > HISTORY_WINDOW:
             recent_mids.pop(0)
