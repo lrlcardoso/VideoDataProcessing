@@ -9,7 +9,7 @@ Description:    Filters tracking results by computing cosine similarity and
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-04-15
-Version:        1.3
+Version:        1.4
 ==============================================================================
 Usage:
     python filter_detection.py
@@ -34,6 +34,9 @@ Changelog:
                          similarities for better re-identification accuracy. 
                          Also fixed a bug where incorrect frame positions were 
                          being processed.
+    - v1.4: [2025-06-19] Added modifications to incorporate TARGET_ID and 
+                         IGNORE_IDS to allow for manual adjustments of the 
+                         filtering process.
 ==============================================================================
 """
 
@@ -397,8 +400,8 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
                     if frame_data["ids"][idx] not in ignore_ids:
                         best_idx = idx
 
-                        if frame_idx>(1434+start_frame) and frame_idx<(1441+start_frame):
-                            print(frame_data["ids"][best_idx])
+                        # if frame_idx>(1434+start_frame) and frame_idx<(1441+start_frame):
+                        #     print(frame_data["ids"][best_idx])
 
                         break
                 else:
@@ -429,6 +432,8 @@ def run_filter_detection(video_path, pickle_file, output_pkl, start_video_time=N
                 found = False
                 for i, kp in enumerate(keypoints):
                     if i == best_idx:
+                        continue
+                    if ignore_ids is not None and frame_data["ids"][i].item() in ignore_ids:
                         continue
                     m = compute_shoulder_midpoint(kp[LEFT_SHOULDER], kp[RIGHT_SHOULDER])
                     if m is None:

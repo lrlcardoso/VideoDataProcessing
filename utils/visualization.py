@@ -8,7 +8,7 @@ Description:    Processes a video by overlaying bounding boxes, person IDs,
 Author:         Lucas R. L. Cardoso
 Project:        VRRehab_UQ-MyTurn
 Date:           2025-03-25
-Version:        1.2
+Version:        1.3
 ==============================================================================
 Usage:
     python <script_name>.py
@@ -22,6 +22,10 @@ Changelog:
     - v1.1: [2025-04-15] Added support for trimming the video using start and 
                          stop seconds
     - v1.2: [2025-04-24] Updated the status display, including a status bar
+    - v1.3: [2025-06-19] Fixed crash when 'boxes', 'ids', or other fields in 
+                         the frame data were set as NumPy arrays or None; 
+                         improved robustness of frame processing in 
+                         'process_frame()'.
 ==============================================================================
 """
 
@@ -114,9 +118,17 @@ def process_frame(frame, data, show_only_targets):
     Processes a single frame to draw bounding boxes, IDs, and skeletons.
     Handles persistent search box for target mode when camera is not moving.
     """
-    boxes = data.get("boxes", [])
-    ids = data.get("ids", [])
-    keypoints = data.get("keypoints", [])
+    boxes = data.get("boxes")
+    if boxes is None:
+        boxes = []
+
+    ids = data.get("ids")
+    if ids is None:
+        ids = []
+
+    keypoints = data.get("keypoints")
+    if keypoints is None:
+        keypoints = []
 
     raw_flags = data.get("is_target", None)
     if raw_flags is not None and len(raw_flags) == len(boxes):
