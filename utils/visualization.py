@@ -276,15 +276,114 @@ def process_video(pkl_file, video_path, output_video_path, start_video_time, end
     # print()  # To move to the next line after the progress
     # print(f"Execution time: {end_time - start_time:.2f} seconds", flush=True)
 
+def draw_frame_with_target_id(frame, data, target_id):
+    """
+    Draw only one target (by person ID) on a frame.
+    """
+    boxes = data.get("boxes", [])
+    ids = data.get("ids", [])
+    keypoints = data.get("keypoints", [])
+    mids = data.get("mid_points", [])
+    similarities = data.get("similarities", [])
+    avg_mid = data.get("avg_mid", None)
+    search_box = data.get("search_box", None)
+
+    for i, person_id in enumerate(ids):
+        if person_id != target_id:
+            continue
+
+        # Draw bounding box
+        if i < len(boxes):
+            draw_bounding_box_with_id(frame, boxes[i], person_id, (0, 255, 0))
+
+        # Draw skeleton
+        if i < len(keypoints):
+            draw_skeleton(frame, keypoints[i], (0, 0, 255))
+
+        # Draw midpoint and similarity
+        if i < len(mids) and mids[i] is not None:
+            x, y = map(int, mids[i])
+            cv2.circle(frame, (x, y), 5, (0, 255, 255), -1)
+            cv2.putText(frame, "Mid", (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+            if i < len(similarities):
+                sim_score = similarities[i]
+                cv2.putText(frame, f"Sim: {sim_score:.2f}", (x + 5, y + 15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+    # Optionally show avg_mid and search_box
+    if avg_mid is not None:
+        x, y = map(int, avg_mid)
+        cv2.circle(frame, (x, y), 7, (255, 0, 0), -1)
+        cv2.putText(frame, "AvgMid", (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+
+    if search_box:
+        top_left, bottom_right = search_box
+        cv2.rectangle(frame, tuple(top_left), tuple(bottom_right), (255, 255, 0), 2)
+        cv2.putText(frame, "SearchBox", (top_left[0], top_left[1] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+
+
+def generate_single_frame(pkl_file, video_path, output_image_path, frame_index=0, target_id=None):
+    """
+    Generates a single annotated frame and shows only the person with the given target_id.
+
+    Parameters:
+    - pkl_file: Path to the pickle file.
+    - video_path: Path to the source video.
+    - output_image_path: Where to save the annotated frame.
+    - frame_index: Frame index to extract.
+    - target_id: Only this ID will be shown in the figure.
+
+    Returns:
+    - None
+    """
+    with open(pkl_file, "rb") as f:
+        extracted_data = pickle.load(f)
+
+    if frame_index >= len(extracted_data):
+        print(f"❌ Frame index {frame_index} out of range.")
+        return
+
+    cap = cv2.VideoCapture(video_path)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if frame_index >= total_frames:
+        print(f"❌ Frame index {frame_index} exceeds video length.")
+        return
+
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+    ret, frame = cap.read()
+    if not ret:
+        print(f"❌ Failed to read frame at index {frame_index}")
+        return
+
+    # Use the new, customized drawing logic
+    data = extracted_data[frame_index]
+    draw_frame_with_target_id(frame, data, target_id)
+
+    cv2.imwrite(output_image_path, frame)
+    print(f"✅ Saved annotated frame with target ID {target_id} to {output_image_path}")
+    cap.release()
+
 
 def generate_video(pkl_file, video_source, output_video, start_video_time, end_video_time, show_only_targets):
 
     process_video(pkl_file, video_source, output_video, start_video_time, end_video_time, show_only_targets)
 
 if __name__ == "__main__":
-    pkl_file = "VRsession_30fps_largerModel.pkl"
-    video_source = "VRsession_30fps.mp4"
+    pkl_file = r"C:\Users\s4659771\Documents\MyTurn_Project\Data\Processed\P03\Session3_20250219\Video\VR\Camera2\2025-02-19 10-05-17_kinematic_data.pkl"
+    video_source = r"C:\Users\s4659771\Documents\MyTurn_Project\Data\Processed\P03\Session3_20250219\Video\VR\Camera2\2025-02-19 10-05-17.mkv"
     output_video = "VRsession_30fps_largerModel_annotated.mp4"
-    show_only_targets = False
+    show_only_targets = True
 
-    generate_video(pkl_file, video_source, output_video, show_only_targets)
+    # === Toggle between full video or single frame ===
+    single_frame_mode = True
+    output_image = "annotated_frame_65221.png"
+    frame_index = 65220
+    target_id = 711
+
+    if single_frame_mode:
+        generate_single_frame(pkl_file, video_source, output_image, frame_index=frame_index, target_id=target_id)
+    else:
+        generate_video(pkl_file, video_source, output_video, show_only_targets=show_only_targets)
+
