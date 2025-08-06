@@ -38,7 +38,6 @@ Video_Data_Processing/
 │   ├── video_processing.py
 │   ├── visualization.py
 │   └── file_utils.py
-├── pose_models/          # YOLO-Pose models
 ├── requirements.txt
 ├── segmentation_example.txt
 └── README.md
