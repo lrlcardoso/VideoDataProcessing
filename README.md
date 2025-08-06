@@ -134,3 +134,4 @@ Documentation & figures: [CC BY 4.0](LICENSE-docs)
 
 - [YOLO-Pose](https://github.com/itsyb/YOLOv7-Pose)  
 - [TorchReID](https://github.com/KaiyangZhou/deep-person-reid)
+- OpenCV
