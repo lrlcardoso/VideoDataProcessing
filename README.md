@@ -1,93 +1,105 @@
-# VRRehab_UQ-MyTurn
+# RehabTrack_Workflow – Video Data Processing
 
-A modular Python pipeline for processing, filtering, and visualizing pose tracking data in virtual reality (VR) neurorehabilitation sessions. This project supports multi-step analysis workflows using YOLO-based detection, person Re-ID with deep embeddings, camera motion filtering, and dynamic video annotation.
+This is part of the [RehabTrack_Workflow](https://github.com/lrlcardoso/RehabTrack_Workflow)  
+A modular Python pipeline for **tracking and analysing physiotherapy movements**, using video and IMU data.  
+This stage prepares cleaned, annotated, and structured video data for subsequent analysis.
 
 ---
 
-## 📂 Project Structure
+## 📌 Overview
+
+This stage performs:
+- **Pose estimation** using YOLO-Pose
+- **Person re-identification** via TorchReID embeddings
+- **Target filtering** using cosine similarity and shoulder midpoints
+- **Camera movement detection** using ORB features
+- **Dynamic video annotation** with bounding boxes and skeleton overlays
+
+**Inputs:**
+- Raw session video recordings (e.g., in .mkv)
+- Model weights (YOLO-Pose, TorchReID)
+
+**Outputs:**
+- `.pkl` file with per-frame detections & metadata
+- Downsampled and trimmed video
+- Annotated video showing detected people and keypoints
+
+---
+
+## 📂 Repository Structure
 
 ```
-VRRehab_UQ-MyTurn/
-├── main.py                         # Main script for orchestrating the pipeline
-├── config.py                       # Configuration settings for filtering, paths, etc.
-├── utils/
-│   ├── data_extraction.py         # Initial YOLO pose extraction and detection
-│   ├── filter_detection.py        # Target embedding, cosine similarity, filtering
-│   ├── logfile_utils.py           # Logging system
-│   ├── video_processing.py        # Pre-processing and trimming with FFmpeg
-│   ├── visualization.py           # Annotates video with bounding boxes, skeletons, midpoints
-│   └── file_utils.py              # File management helpers
-├── pose_models/                   # YOLO-Pose models (e.g., yolo11n-pose.pt)
-├── README.md
-└── requirements.txt
+Video_Data_Processing/
+├── main.py               # Main entry point
+├── config.py             # Configurable parameters & paths
+├── utils/                # Processing and helper modules
+│   ├── data_extraction.py
+│   ├── filter_detection.py
+│   ├── logfile_utils.py
+│   ├── video_processing.py
+│   ├── visualization.py
+│   └── file_utils.py
+├── pose_models/          # YOLO-Pose models
+├── requirements.txt
+├── segmentation_example.txt
+└── README.md
 ```
 
 ---
 
-## 🧠 Features
+## 🛠 Installation
 
-- 🔍 **YOLO-Pose Detection** with model selection
-- 🧬 **Deep Re-Identification** using torchreid embeddings
-- 🧠 **Target Filtering** via cosine similarity and dynamic shoulder midpoints
-- 🎥 **Camera Movement Detection** using ORB + affine transform magnitude
-- 🧰 **Modular Visualization** including midpoints and dynamic search boxes
-- ⚙️ **Configurable Pipeline** by patient, session, and time range
-
----
-
-## 🛠️ Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/VRRehab_UQ-MyTurn.git
-cd VRRehab_UQ-MyTurn
-```
-
-2. Set up a virtual environment (optional but recommended):
-```bash
+git clone https://github.com/yourusername/VideoDataProcessing.git
+cd VideoDataProcessing
 python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-```
-
-3. Install dependencies:
-```bash
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-> Note: TorchReID requires some system dependencies and may be installed from source. See: https://github.com/KaiyangZhou/deep-person-reid
+> TorchReID may require additional system dependencies – see [TorchReID documentation](https://github.com/KaiyangZhou/deep-person-reid).
 
 ---
 
 ## 🚀 Usage
 
-### Step 1: Run Multiple Detection
-
+### 1️⃣ Multiple Detection
+Extract detections (all individuals) from raw video.
 ```bash
 python main.py --multipleDetection
 ```
+**Inputs:**
+- Recorded videos (no limit to length)
 
-Outputs:
-- `.pkl` file with detection results
+**Outputs:**
+- `.pkl` with all detections
 - Downsampled video
 - Initial annotated video
 
----
-
-### Step 2: Run Target Filtering
-
+### 2️⃣ Target Filtering
+Filter detections to isolate the target person.
 ```bash
 python main.py --filterDetection
 ```
+**Inputs:**  
+- **Recorded videos** – no restriction on length.  
+- **Detections file** (`.pkl`) – containing all detections (output from the `--multipleDetection` step).  
+- **Segmentation file** – specifies:  
+  1. The time segments of the video to process.  
+  2. A reference segment (60–90 s) where the target person is clearly visible with no obstructions.  
+  3. The ID assigned to that person during this reference segment.  
 
-Outputs:
+Refer to the `segmentation_example.txt` file for detailed formatting and examples.  
+
+**Outputs:**
 - Filtered `.pkl` with `is_target`, `mid_points`, `avg_mid`, `search_box`
-- Annotated video with only the target and key spatial cues
+- Annotated video showing only the target
 
 ---
 
-## 🧪 Data Format
+## 📦 Data Format
 
-Each frame in the `.pkl` contains:
+Each frame entry in the `.pkl` contains:
 ```python
 {
   "boxes": [...],
@@ -103,14 +115,25 @@ Each frame in the `.pkl` contains:
 
 ---
 
+## 📖 Citation
+
+If you use this stage in your research, please cite:
+```
+Cardoso, L. R. L. (2025). RehabTrack_Workflow: Video Data Processing. 
+GitHub. https://doi.org/XXXX/zenodo.XXXXX
+```
+
+---
+
 ## 📝 License
 
-This project is part of an academic research initiative at The University of Queensland. Contact [Lucas Cardoso](mailto:your.email@uq.edu.au) for usage or collaboration inquiries.
+Code: [MIT License](LICENSE)  
+Documentation & figures: [CC BY 4.0](LICENSE-docs)
 
 ---
 
 ## 🤝 Acknowledgments
 
-- [YOLO-Pose](https://github.com/itsyb/YOLOv7-Pose)
-- [TorchReID](https://github.com/KaiyangZhou/deep-person-reid)
-- OpenCV, FFmpeg, PyTorch, tqdm, and others
+- [YOLO-Pose](https://github.com/itsyb/YOLOv7-Pose)  
+- [TorchReID](https://github.com/KaiyangZhou/deep-person-reid)  
+- OpenCV, FFmpeg, PyTorch, tqdm
