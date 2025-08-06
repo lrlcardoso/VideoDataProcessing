@@ -88,6 +88,7 @@ python main.py --filterDetection
   3. The ID assigned to that person during this reference segment.  
 
 Refer to the `segmentation_example.txt` file for detailed formatting and examples.  
+We suggest the use of the software [ELAN 6.9](https://archive.mpi.nl/tla/elan) for easy annotation of the video and generate the segmentation file.
 
 **Outputs:**
 - Filtered `.pkl` with `is_target`, `mid_points`, `avg_mid`, `search_box`
