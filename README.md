@@ -1,7 +1,6 @@
 # RehabTrack_Workflow – Video Data Processing
 
-This is part of the [RehabTrack_Workflow](https://github.com/lrlcardoso/RehabTrack_Workflow)  
-A modular Python pipeline for **tracking and analysing physiotherapy movements**, using video and IMU data.  
+This is part of the [RehabTrack_Workflow](https://github.com/lrlcardoso/RehabTrack_Workflow): a modular Python pipeline for **tracking and analysing physiotherapy movements**, using video and IMU data.  
 This stage prepares cleaned, annotated, and structured video data for subsequent analysis.
 
 ---
