@@ -116,10 +116,9 @@ Each frame entry in the `.pkl` contains:
 
 ## 📖 Citation
 
-If you use this stage in your research, please cite:
+If you use this module, please cite:
 ```
-Cardoso, L. R. L. (2025). RehabTrack_Workflow. 
-GitHub. https://doi.org/XXXX/zenodo.XXXXX
+Cardoso, L. R. L. (2025). RehabTrack Workflow: A Modular Hybrid Video–IMU Pipeline for Analysing Upper-Limb Physiotherapy Data (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.16756215
 ```
 
 ---
