@@ -127,7 +127,6 @@ GitHub. https://doi.org/XXXX/zenodo.XXXXX
 ## 📝 License
 
 Code: [MIT License](LICENSE)  
-Documentation & figures: [CC BY 4.0](LICENSE-docs)
 
 ---
 
