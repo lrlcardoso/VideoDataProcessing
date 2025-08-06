@@ -1,6 +1,6 @@
-# RehabTrack_Workflow – Video Data Processing
+# RehabTrack Workflow – Video Data Processing
 
-This is part of the [RehabTrack_Workflow](https://github.com/lrlcardoso/RehabTrack_Workflow): a modular Python pipeline for **tracking and analysing physiotherapy movements**, using video and IMU data.  
+This is part of the [RehabTrack Workflow](https://github.com/lrlcardoso/RehabTrack_Workflow): a modular Python pipeline for **tracking and analysing physiotherapy movements**, using video and IMU data.  
 This stage prepares cleaned, annotated, and structured video data for subsequent analysis.
 
 ---
@@ -133,5 +133,4 @@ Documentation & figures: [CC BY 4.0](LICENSE-docs)
 ## 🤝 Acknowledgments
 
 - [YOLO-Pose](https://github.com/itsyb/YOLOv7-Pose)  
-- [TorchReID](https://github.com/KaiyangZhou/deep-person-reid)  
-- OpenCV, FFmpeg, PyTorch, tqdm
+- [TorchReID](https://github.com/KaiyangZhou/deep-person-reid)
