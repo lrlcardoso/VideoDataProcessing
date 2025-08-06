@@ -117,7 +117,7 @@ Each frame entry in the `.pkl` contains:
 
 If you use this stage in your research, please cite:
 ```
-Cardoso, L. R. L. (2025). RehabTrack_Workflow: Video Data Processing. 
+Cardoso, L. R. L. (2025). RehabTrack_Workflow. 
 GitHub. https://doi.org/XXXX/zenodo.XXXXX
 ```
 
