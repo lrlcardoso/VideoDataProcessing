@@ -62,12 +62,12 @@ pip install -r requirements.txt
 ## 🚀 Usage
 
 ### 1️⃣ Multiple Detection
-Extract detections (all individuals) from raw video.
+Extract detections of all individuals from raw video.  
 ```bash
 python main.py --multipleDetection
 ```
-**Inputs:**
-- Recorded videos (no limit to length)
+**Inputs:**  
+- **Recorded videos** – no restriction on length.  
 
 **Outputs:**
 - `.pkl` with all detections
